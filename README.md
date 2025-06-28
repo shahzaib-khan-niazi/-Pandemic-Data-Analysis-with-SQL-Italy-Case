@@ -5,7 +5,9 @@ Performed advanced SQL analysis on Italy’s COVID-19 data to find regional and 
 
 ## Overview
 
-This project analyzes **Italy’s COVID-19 pandemic dataset** using advanced **SQL techniques** to uncover meaningful insights into the spread, recovery, and mortality trends across regions and time.
+## Overview
+
+In this project, I analyzed Italy’s COVID-19 dataset using **advanced SQL techniques** to uncover regional and temporal trends during the pandemic. Using stored procedures, triggers, window functions, views, and CTEs, I computed key metrics like recovery rates, mortality rates, top affected regions, and daily/weekly trends. This project showcases structured, in-depth data analysis using SQL without external tools, demonstrating practical data wrangling and KPI extraction on real-world data.
 
 ## Objectives
 - Perform **regional and temporal analysis** of COVID-19 data.
