@@ -65,6 +65,3 @@ To enhance this project further:
 This project is for educational and portfolio demonstration purposes.
 
 ---
-
-## Contact
-For questions or collaborations, connect with me on [LinkedIn](#) or email at [your_email@example.com].
