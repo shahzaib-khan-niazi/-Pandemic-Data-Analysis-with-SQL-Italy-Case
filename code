@@ -1,0 +1,147 @@
+create database covid_italy;
+use covid_italy;
+
+select * from italy_province;
+select * from covid19_italy_region;
+
+describe italy_province;
+describe covid19_italy_region;
+
+select count(*) as total from italy_province;
+select count(*)as total from covid19_italy_region;
+select distinct country from italy_province;
+select distinct country from covid19_italy_region;
+
+select regionname, max(totalpositivecases) as max_cases from covid19_italy_region group by regionname
+order by max_cases desc limit 5;
+
+create view region_daily_cases as
+select date,regionname, sum(newpositivecases) as daily_new_cases
+from covid19_italy_region group by date, regionname;
+
+delimiter $$
+create procedure get_region_summary(in reg_name text)
+begin
+    select  regionname,max(totalpositivecases) as total_cases,max(recovered) as recovered,
+max(deaths) as deaths,
+round(max(recovered)*100.0 / max(totalpositivecases), 2) as recovery_rate_percent,
+round(max(deaths)*100.0 / max(totalpositivecases), 2) as mortality_rate_percent
+from covid19_italy_region where regionname = reg_name group by regionname;
+end$$
+delimiter ;
+call get_region_summary('Lombardia');
+
+select * from covid19_italy_region where deaths is null or recovered is null or totalpositivecases is null;
+
+select distinct date from covid19_italy_region order by date;
+
+select p.provincename,p.regionname,p.totalpositivecases as province_cases,r.totalpositivecases as region_cases,
+round((p.totalpositivecases * 100.0 / nullif(r.totalpositivecases, 0)), 2) as province_case_percent
+from italy_province p join covid19_italy_region r on p.sno = r.sno
+where substr(r.date, 1, 10) = '2020-04-10' order by province_case_percent desc;
+
+
+select date, count(*) as total from covid19_italy_region group by date order by date desc;
+
+select regionname,sum(newpositivecases) as total_new_cases,sum(deaths) as total_deaths
+from covid19_italy_region where substr(date, 1, 10) between '2020-03-10' and '2020-03-20'
+group by regionname order by total_new_cases desc;
+
+select  regionname,sum(totalhospitalizedpatients) as total_hospitalized from covid19_italy_region
+where substr(date, 1, 10) between '2020-03-01' and '2020-03-15'
+group by regionname order by total_hospitalized desc;
+
+select regionname, sum(newpositivecases) as total_new_cases from covid19_italy_region
+where substr(date, 1, 10) between '2020-03-10' and '2020-03-17' group by regionname
+having sum(newpositivecases) > 1000 order by total_new_cases desc;
+
+select regionname, sum(deaths) as total_deaths,sum(recovered) as total_recovered,
+round(sum(deaths)*1.0 / nullif(sum(recovered), 0), 2) as death_recovery_ratio
+from covid19_italy_region where substr(date, 1, 10) between '2020-03-01' and '2020-03-31'
+group by regionname order by death_recovery_ratio desc;
+
+create view region_weekly_cases as
+select regionname,substr(date, 1, 7) as yearmonth, sum(newpositivecases) as monthly_new_cases
+from covid19_italy_region group by regionname, substr(date, 1, 7) order by regionname, yearmonth;
+
+select p.regionname,p.provincename,sum(p.totalpositivecases) as province_total_cases,
+sum(r.totalpositivecases) as region_total_cases,
+round(sum(p.totalpositivecases) * 100.0 / nullif(sum(r.totalpositivecases), 0), 2) as province_case_percent
+from italy_province p join covid19_italy_region r on p.sno = r.sno
+where substr(r.date, 1, 10) between '2020-03-10' and '2020-03-20'
+group by p.regionname, p.provincename order by province_case_percent desc;
+
+delimiter $$
+create procedure get_region_metric_summary(
+    in start_date text,
+    in end_date text,
+    in metric text
+)
+begin
+    if metric = 'new_cases' then
+        select regionname,sum(newpositivecases) as total_new_cases from covid19_italy_region
+        where substr(date, 1, 10) between start_date and end_date group by regionname order by total_new_cases desc;
+    elseif metric = 'deaths' then
+        select regionname,sum(deaths) as total_deaths from covid19_italy_region
+        where substr(date, 1, 10) between start_date and end_date group by regionname
+        order by total_deaths desc;
+
+    elseif metric = 'recovered' then
+        select regionname, sum(recovered) as total_recovered from covid19_italy_region
+        where substr(date, 1, 10) between start_date and end_date group by regionname
+        order by total_recovered desc;
+    else
+        select 'invalid metric, use: new_cases, deaths, recovered' as message;
+    end if;
+end$$
+delimiter ;
+call get_region_metric_summary('2020-03-10', '2020-03-20', 'new_cases');
+call get_region_metric_summary('2020-03-01', '2020-03-15', 'deaths');
+call get_region_metric_summary('2020-03-05', '2020-03-25', 'recovered');
+
+select regionname,'deaths' as metric,sum(deaths) as total_value from covid19_italy_region
+where substr(date, 1, 10) between '2020-03-10' and '2020-03-25' group by regionname
+union
+select regionname,'recovered' as metric,sum(recovered) as total_value from covid19_italy_region
+where substr(date, 1, 10) between '2020-03-10' and '2020-03-25' group by regionname
+order by regionname, metric;
+
+
+select regionname,sum(newpositivecases) as total_new_cases from covid19_italy_region group by regionname
+order by total_new_cases desc;
+
+select regionname,max(newpositivecases) as max_new_cases from covid19_italy_region group by regionname
+order by max_new_cases desc;
+
+select regionname, min(newpositivecases) as min_new_cases from covid19_italy_region group by regionname
+order by min_new_cases asc;
+
+select regionname,count(*) as records_count from covid19_italy_region group by regionname order by records_count desc;
+
+select regionname,sum(newpositivecases) as total_new_cases,avg(newpositivecases) as avg_new_cases,
+max(newpositivecases) as max_new_cases,min(newpositivecases) as min_new_cases,count(*) as record_count
+from covid19_italy_region group by regionname order by total_new_cases desc;
+
+create table covid19_insert_log (
+    id int auto_increment primary key,
+    log_message text,
+    log_time timestamp default current_timestamp
+);
+delimiter $$
+create trigger log_covid19_insert
+after insert on covid19_italy_region
+for each row
+begin
+    insert into covid19_insert_log(log_message) 
+    values (concat('New record inserted for region: ', new.regionname, ' on ', new.date));
+end$$
+delimiter ;
+
+select date,regionname,newpositivecases,rank() over (partition by date order by newpositivecases desc) as daily_rank
+from covid19_italy_region;
+
+with daily_totals as (
+select date, sum(newpositivecases) as total_cases from covid19_italy_region group by date
+)
+select * from daily_totals order by date;
+
